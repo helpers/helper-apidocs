@@ -1,0 +1,54 @@
+{
+  "name": "helper-apidocs",
+  "description": "Template helper for automatically generating API docs from code comments. The sync version works with handlebars, lo-dash, or any template engine that supports helper functions. The async version is compatible with Verb, Assemble, or any application based on Template.",
+  "version": "0.1.0",
+  "homepage": "https://github.com/ * Module dependencies/helper-apidocs",
+  "author": {
+    "name": "Jon Schlinkert",
+    "url": "/**"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ * Module dependencies/helper-apidocs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ * Module dependencies/helper-apidocs/issues"
+  },
+  "license": {
+    "type": "MIT",
+    "url": "https://github.com/ * Module dependencies/helper-apidocs/blob/master/LICENSE-MIT"
+  },
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha -R spec"
+  },
+  "devDependencies": {
+    "handlebars": "^2.0.0",
+    "lodash": "^2.4.1",
+    "mocha": "*",
+    "should": "*"
+  },
+  "dependencies": {
+    "async": "^0.9.0",
+    "extend-shallow": "^0.1.1",
+    "globby": "^1.0.0",
+    "js-comments": "^0.3.4",
+    "template-utils": "^0.1.6"
+  },
+  "keywords": [
+    "api",
+    "api-docs",
+    "apidocs",
+    "code",
+    "comment",
+    "comments",
+    "docs",
+    "documentation",
+    "generate",
+    "helper",
+    "helpers"
+  ]
+}
