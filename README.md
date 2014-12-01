@@ -10,6 +10,8 @@ npm i helper-apidocs --save
 
 ## Example usage
 
+See [the tests](./test.js) for actual usage examples.
+
 With Handlebars:
 
 ```handlebars

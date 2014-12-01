@@ -9,6 +9,7 @@
 
 var should = require('should');
 var handlebars = require('handlebars');
+var Template = require('template');
 var _ = require('lodash');
 var helper = require('./');
 
@@ -39,6 +40,16 @@ describe('sync', function () {
     handlebars.registerHelper('apidocs', helper.sync);
     var res = handlebars.compile('{{apidocs "fixtures/a.js"}}')();
     (/### \[\.one\]/.test(res)).should.be.true;
+  });
+
+  it('should work with Template:', function () {
+    var template = new Template();
+    template.helper('apidocs', helper.sync);
+    template.page('docs', {content: '<%= apidocs("fixtures/a.js") %>'});
+
+    template.render('docs', function (err, content) {
+      (/### \[\.one\]/.test(content)).should.be.true;
+    });
   });
 });
 
