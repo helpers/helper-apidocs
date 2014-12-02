@@ -29,6 +29,9 @@ var requires = {};
 
 module.exports = apidocs;
 
+/**
+ * `apidocs` helper.
+ */
 
 function apidocs(patterns, options, cb) {
   if (typeof options === 'function') {
@@ -36,15 +39,16 @@ function apidocs(patterns, options, cb) {
     options = {};
   }
 
+  var opts = extend({sep: '\n', dest: 'README.md'}, options);
   var appOpts = this && this.app && this.app.options;
-  var opts = extend({sep: '\n', dest: 'README.md'}, appOpts, options);
-  var ctx = extend({}, this && this.context);
-  var dest = path.resolve(ctx.dest || opts.dest);
+  var ctx = extend({}, opts, appOpts, this && this.context);
+  var dest = ctx.dest ? path.resolve(ctx.dest) : '.';
 
   opts.cwd = ctx.filepath
     ? path.dirname(ctx.filepath)
     : process.cwd();
 
+  // we can't pass the `ctx` object to glob because it bugs out
   glob(patterns, opts, function(err, files) {
     async.mapSeries(files, function(fp, next) {
       var jscomments = requires.jscomments || (requires.jscomments = require('js-comments'));
@@ -62,6 +66,7 @@ apidocs.sync = function(patterns, options) {
   var opts = extend({sep: '\n', dest: 'README.md'}, appOpts, options);
   var ctx = extend({}, this && this.context);
   var dest = path.resolve(ctx.dest || opts.dest);
+
   opts.cwd = ctx.filepath
     ? path.dirname(ctx.filepath)
     : process.cwd();
