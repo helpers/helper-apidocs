@@ -8,20 +8,20 @@
 npm i helper-apidocs --save
 ```
 
+
+
 ## Example usage
-
-See [the tests](./test.js) for actual usage examples.
-
-With Handlebars:
-
-```handlebars
-{{apidocs "index.js"}}
-```
 
 With Lo-Dash or Underscore:
 
 ```js
 <%= apidocs("index.js") %>
+```
+
+With Handlebars:
+
+```handlebars
+{{apidocs "index.js"}}
 ```
 
 With Verb (lo-dash, with special delimiters to avoid delimiter collision in markdown docs):
@@ -30,11 +30,15 @@ With Verb (lo-dash, with special delimiters to avoid delimiter collision in mark
 {%= apidocs('index.js') %}
 ```
 
+
 ## Run tests
 
 ```bash
 npm test
 ```
+See [the tests](./test.js) for actual usage examples.
+
+
 
 ## Register the helper
 
@@ -92,18 +96,15 @@ var settings = {imports: {apidocs: apidocsHelper}};
 _.template('<%= apidocs("fixtures/*.js") %>', {}, settings);
 ```
 
-
 ## Contributing
-Pull requests and stars are always welcome. For bugs and feature requests, [please create an issue](https://github.com/ * Module dependencies/helper-apidocs/issues)
-
-To request or contribute a helper to the [github.com/helpers][helpers] org, please read [this contributing guide][guide] to get started.
+Pull requests and stars are always welcome. For bugs and feature requests, [please create an issue](https://github.com/jonschlinkert/helper-apidocs/issues). To request or contribute a helper to the [github.com/helpers][helpers] org, please read [this contributing guide][guide] to get started.
 
 ## Author
 
 **Jon Schlinkert**
  
-+ [github/%20*%20Module%20dependencies](https://github.com/%20*%20Module%20dependencies)
-+ [twitter/%20*%20Module%20dependencies](http://twitter.com/%20*%20Module%20dependencies) 
++ [github/jonschlinkert](https://github.com/jonschlinkert)
++ [twitter/jonschlinkert](http://twitter.com/jonschlinkert) 
 
 ## License
 Copyright (c) 2014 Jon Schlinkert  
