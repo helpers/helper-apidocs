@@ -46,14 +46,22 @@ describe('sync', function () {
     var template = new Template();
     template.helper('apidocs', helper.sync);
     template.page('docs', {content: '<%= apidocs("fixtures/a.js") %>'});
-
-    template.render('docs', function (err, content) {
-      (/### \[\.one\]/.test(content)).should.be.true;
-    });
+    (/### \[\.one\]/.test(template.render('docs'))).should.be.true;
   });
 });
 
 describe('helper apidocs', function () {
+  it('should work with Template:', function (done) {
+    var template = new Template();
+    template.asyncHelper('apidocs', helper);
+    template.page('docs', {content: '<%= apidocs("fixtures/a.js") %>'});
+    template.render('docs', function (err, content) {
+      if (err) return done(err);
+      (/### \[\.one\]/.test(content)).should.be.true;
+      done();
+    });
+  });
+
   it('should generate API docs from the given file:', function () {
     helper("fixtures/a.js", function (err, content) {
       (/### \[\.one\]/.test(content)).should.be.true;
