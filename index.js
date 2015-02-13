@@ -42,6 +42,12 @@ function apidocs(patterns, options, cb) {
   var opts = extend({sep: '\n', dest: 'README.md'}, options);
   var appOpts = this && this.app && this.app.options;
   var ctx = extend({}, opts, appOpts, this && this.context);
+
+  // assemble compatibility
+  if (ctx.dest && typeof ctx.dest === 'object') {
+    ctx.dest = ctx.dest.dirname || ctx.dest.path;
+  }
+
   var dest = ctx.dest ? path.resolve(ctx.dest) : '.';
 
   opts.cwd = ctx.filepath
