@@ -22,6 +22,7 @@ var tutil = require('template-utils');
  */
 
 var requires = {};
+var jscomments = requires.jscomments || (requires.jscomments = require('js-comments'));
 
 /**
  * Expose `apidocs` helper
@@ -35,34 +36,21 @@ module.exports = apidocs;
 
 function apidocs(patterns, options, cb) {
   if (typeof options === 'function') {
-    cb = options;
-    options = {};
+    cb = options; options = {};
   }
 
-  var appOpts = this && this.app && this.app.options;
-  var opts = extend({sep: '\n'}, options);
-  var ctx = extend({}, appOpts, this && this.context);
-
-  // assemble compatibility
-  if (ctx.dest && typeof ctx.dest === 'object') {
-    ctx.dest = ctx.dest.dirname || ctx.dest.path;
-  }
-
-  var dest = opts.dest || ctx.dest || 'README.md';
+  var opts = extend({sep: '\n', dest: 'README.md'}, options);
+  var dest = opts.dest;
   if (dest && dest.indexOf('://') === -1) {
     dest = path.relative(process.cwd(), dest);
   }
 
-  opts.cwd = ctx.filepath
-    ? path.dirname(ctx.filepath)
-    : process.cwd();
+  opts.cwd = opts.cwd ? path.dirname(opts.cwd) : process.cwd();
 
-  // we can't pass the `ctx` object to glob because it bugs out
+  // we can't pass the `opts` object to glob because it bugs out
   glob(patterns, opts, function(err, files) {
     async.mapSeries(files, function(fp, next) {
-      var jscomments = requires.jscomments || (requires.jscomments = require('js-comments'));
-      var res = jscomments(fp, dest, opts);
-      next(null, tutil.headings(res));
+      return next(null, tutil.headings(jscomments(fp, dest, opts)));
     }, function (err, arr) {
       if (err) return cb(err);
       cb(null, arr.join('\n'));
@@ -71,26 +59,15 @@ function apidocs(patterns, options, cb) {
 }
 
 apidocs.sync = function(patterns, options) {
-  var appOpts = this && this.app && this.app.options;
-  var opts = extend({sep: '\n'}, appOpts, options);
-  var ctx = extend({}, this && this.context);
-
-  // assemble compatibility
-  if (ctx.dest && typeof ctx.dest === 'object') {
-    ctx.dest = ctx.dest.dirname || ctx.dest.path;
-  }
-
-  var dest = opts.dest || ctx.dest || 'README.md';
+  var opts = extend({sep: '\n', dest: 'README.md'}, options);
+  var dest = opts.dest;
   if (dest && dest.indexOf('://') === -1) {
     dest = path.relative(process.cwd(), dest);
   }
 
-  opts.cwd = ctx.filepath
-    ? path.dirname(ctx.filepath)
-    : process.cwd();
+  opts.cwd = opts.cwd ? path.dirname(opts.cwd) : process.cwd();
 
   return glob.sync(patterns, opts).map(function (fp) {
-    var jscomments = requires.jscomments || (requires.jscomments = require('js-comments'));
     return tutil.headings(jscomments(fp, dest, opts));
   }).join('\n');
 };

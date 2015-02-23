@@ -20,8 +20,8 @@ describe('sync', function () {
   });
 
   it('should allow a dest path for relative links to be define on the opts:', function () {
-    var res = helper.sync("fixtures/a.js", {dest: 'foo/bar'});
-    res.should.match(/foo\/bar/);
+    var res = helper.sync("fixtures/a.js", {dest: 'foo/bar/README.md'});
+    res.should.match(/\.\.\/\.\.\/fixtures\/a\.js/);
   });
 
   it('should generate API docs from a glob of files:', function () {
@@ -60,6 +60,7 @@ describe('helper apidocs', function () {
     var template = new Template();
     template.asyncHelper('apidocs', helper);
     template.page('docs', {content: '<%= apidocs("fixtures/a.js") %>'});
+
     template.render('docs', function (err, content) {
       if (err) return done(err);
       content.should.match(/### \[\.one\]/);
