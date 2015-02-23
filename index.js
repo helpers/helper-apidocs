@@ -1,8 +1,8 @@
 /*!
- * helper-apidocs <https://github.com/ * Module dependencies/helper-apidocs>
+ * helper-apidocs <https://github.com/jonschlinkert/helper-apidocs>
  *
- * Copyright (c) 2014 Jon Schlinkert, contributors.
- * Licensed under the MIT license.
+ * Copyright (c) 2014-2015, Jon Schlinkert.
+ * Licensed under the MIT License.
  */
 
 'use strict';
@@ -39,16 +39,19 @@ function apidocs(patterns, options, cb) {
     options = {};
   }
 
-  var opts = extend({sep: '\n', dest: 'README.md'}, options);
   var appOpts = this && this.app && this.app.options;
-  var ctx = extend({}, opts, appOpts, this && this.context);
+  var opts = extend({sep: '\n'}, options);
+  var ctx = extend({}, appOpts, this && this.context);
 
   // assemble compatibility
   if (ctx.dest && typeof ctx.dest === 'object') {
     ctx.dest = ctx.dest.dirname || ctx.dest.path;
   }
 
-  var dest = ctx.dest ? path.resolve(ctx.dest) : '.';
+  var dest = opts.dest || ctx.dest || 'README.md';
+  if (dest && dest.indexOf('://') === -1) {
+    dest = path.relative(process.cwd(), dest);
+  }
 
   opts.cwd = ctx.filepath
     ? path.dirname(ctx.filepath)
@@ -69,9 +72,18 @@ function apidocs(patterns, options, cb) {
 
 apidocs.sync = function(patterns, options) {
   var appOpts = this && this.app && this.app.options;
-  var opts = extend({sep: '\n', dest: 'README.md'}, appOpts, options);
+  var opts = extend({sep: '\n'}, appOpts, options);
   var ctx = extend({}, this && this.context);
-  var dest = path.resolve(ctx.dest || opts.dest);
+
+  // assemble compatibility
+  if (ctx.dest && typeof ctx.dest === 'object') {
+    ctx.dest = ctx.dest.dirname || ctx.dest.path;
+  }
+
+  var dest = opts.dest || ctx.dest || 'README.md';
+  if (dest && dest.indexOf('://') === -1) {
+    dest = path.relative(process.cwd(), dest);
+  }
 
   opts.cwd = ctx.filepath
     ? path.dirname(ctx.filepath)

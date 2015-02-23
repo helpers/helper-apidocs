@@ -1,24 +1,20 @@
 {
   "name": "helper-apidocs",
   "description": "Template helper for automatically generating API docs from code comments. The sync version works with handlebars, lo-dash, or any template engine that supports helper functions. The async version is compatible with Verb, Assemble, or any application based on Template.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "homepage": "https://github.com/jonschlinkert/helper-apidocs",
   "author": {
     "name": "Jon Schlinkert",
-    "url": "/**"
+    "url": "https://github.com/jonschlinkert"
   },
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/jonschlinkert/helper-apidocs.git"
-  },
+  "repository": "jonschlinkert/helper-apidocs",
   "bugs": {
     "url": "https://github.com/jonschlinkert/helper-apidocs/issues"
   },
-  "license": {
-    "type": "MIT",
-    "url": "https://github.com/jonschlinkert/helper-apidocs/blob/master/LICENSE"
-  },
-  "files": ["index.js"],
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
   "main": "index.js",
   "engines": {
     "node": ">=0.10.0"
@@ -26,19 +22,17 @@
   "scripts": {
     "test": "mocha"
   },
-  "devDependencies": {
-    "handlebars": "^3.0.0",
-    "lodash": "^3.2.0",
-    "mocha": "*",
-    "should": "*",
-    "template": "^0.4.1"
-  },
   "dependencies": {
     "async": "^0.9.0",
     "extend-shallow": "^0.2.0",
     "globby": "^1.1.0",
-    "js-comments": "^0.3.4",
-    "template-utils": "^0.4.0"
+    "js-comments": "^0.3.5",
+    "template-utils": "^0.4.1"
+  },
+  "devDependencies": {
+    "handlebars": "^3.0.0",
+    "lodash": "^3.3.0",
+    "template": "^0.10.1"
   },
   "keywords": [
     "api",

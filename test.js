@@ -1,13 +1,13 @@
 /*!
  * helper-apidocs <https://github.com/jonschlinkert/helper-apidocs>
  *
- * Copyright (c) 2014 Jon Schlinkert, contributors.
- * Licensed under the MIT License
+ * Copyright (c) 2014-2015, Jon Schlinkert.
+ * Licensed under the MIT License.
  */
 
 'use strict';
 
-var should = require('should');
+require('should');
 var handlebars = require('handlebars');
 var Template = require('template');
 var _ = require('lodash');
@@ -17,6 +17,11 @@ describe('sync', function () {
   it('should generate API docs from the given file:', function () {
     var res = helper.sync("fixtures/a.js");
     res.should.match(/### \[\.one\]/);
+  });
+
+  it('should allow a dest path for relative links to be define on the opts:', function () {
+    var res = helper.sync("fixtures/a.js", {dest: 'foo/bar'});
+    res.should.match(/foo\/bar/);
   });
 
   it('should generate API docs from a glob of files:', function () {
