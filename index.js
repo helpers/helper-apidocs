@@ -35,6 +35,16 @@ module.exports = apidocs;
 /**
  * `apidocs` helper.
  */
+/**
+ * Generate API docs from code comments in the JavaScript
+ * files that match the given `patterns`. Only code comments
+ * with `@api public` are rendered.
+ *
+ * @param  {String} `patterns`
+ * @param  {Object} `options`
+ * @return {String}
+ * @api public
+ */
 
 function apidocs(patterns, options, cb) {
   if (typeof options === 'function') {
@@ -57,6 +67,7 @@ function apidocs(patterns, options, cb) {
   glob(patterns, opts, function(err, files) {
     async.mapSeries(files, function(fp, next) {
       var res = tutil.headings(comments(fp, dest, opts));
+      console.log(fp)
 
       if (app) {
         app.option('renameKey', function (fp) {
