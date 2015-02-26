@@ -16,6 +16,17 @@ var _ = require('lodash');
 var helper = require('./');
 var template;
 
+function resolve(fp, next) {
+  next(null, resolveSync(fp));
+}
+
+function resolveSync(fp, next) {
+  var pkg = lookup('package.json', {cwd: 'node_modules/' + fp});
+  var obj = require(pkg);
+  var main = obj && obj.main;
+  return path.resolve(path.dirname(pkg), main);
+}
+
 describe('sync', function () {
   it('should generate API docs from the given file:', function () {
     var res = helper.sync("fixtures/a.js");
@@ -57,7 +68,7 @@ describe('sync:template', function () {
   beforeEach(function () {
     template = new Template();
     template.helper('apidocs', helper.sync);
-    // template.helper('resolve', require('helper-resolve').sync);
+    template.helper('resolve', resolveSync);
   });
 
   it('should work with Template:', function () {
@@ -70,17 +81,11 @@ describe('helper apidocs', function () {
   beforeEach(function (cb) {
     template = new Template();
     template.asyncHelper('apidocs', helper);
-    template.asyncHelper('resolve', function (fp, next) {
-      var pkg = lookup('package.json', {cwd: 'node_modules/' + fp});
-      var obj = require(pkg);
-      var main = obj && obj.main;
-      var res = path.resolve(path.dirname(pkg), main);
-      next(null, res);
-    });
+    template.asyncHelper('resolve', resolve);
     cb();
   });
 
-  it.only('should work with Template:', function (done) {
+  it('should work with Template:', function (done) {
     template.page('docs', {content: '<%= apidocs("fixtures/a.js") %>'});
     var tmpl = template.getPage('docs');
 
@@ -91,28 +96,29 @@ describe('helper apidocs', function () {
     });
   });
 
-  // it('should resolve nested templates:', function (done) {
-  //   template.page('docs', {content: '<%= apidocs("fixtures/a.js") %>'});
-  //   template.render('docs', function (err, content) {
-  //     console.log(content)
-  //     if (err) return done(err);
-  //     // content.should.match(/You made it\! This is ddd\./i);
-  //     done();
-  //   });
-  // });
+  it('should resolve nested templates:', function (done) {
+    template.page('docs', {content: '<%= apidocs("fixtures/a.js") %>'});
+    var tmpl = template.getPage('docs');
 
-  // it('should generate API docs from the given file:', function (done) {
-  //   helper("fixtures/a.js", function (err, content) {
-  //     content.should.match(/### \[\.one\]/);
-  //     done()
-  //   });
-  // });
+    template.render(tmpl, function (err, content) {
+      if (err) return done(err);
+      content.should.match(/node_modules/i);
+      done();
+    });
+  });
 
-  // it('should generate API docs from a glob of files:', function (done) {
-  //   helper("fixtures/*.js", function (err, content) {
-  //     content.should.match(/### \[\.one\]/);
-  //     content.should.match(/### \[\.four\]/);
-  //     done();
-  //   });
-  // });
+  it('should generate API docs from the given file:', function (done) {
+    helper("fixtures/a.js", function (err, content) {
+      content.should.match(/### \[\.aaa\]/);
+      done()
+    });
+  });
+
+  it('should generate API docs from a glob of files:', function (done) {
+    helper("fixtures/*.js", function (err, content) {
+      content.should.match(/### \[\.aaa\]/);
+      content.should.match(/### \[\.ddd\]/);
+      done();
+    });
+  });
 });
