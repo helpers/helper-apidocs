@@ -10,14 +10,11 @@
 var obj = {};
 
 /**
- * b<%= apidocs("fixtures/c.js") %>
- *
- * @param {String} `str`
- * @param {Object} `obj`
- * @return {String}
+ * d<%= apidocs("fixtures/e.js") %>
+ * @name  ddd
  * @api public
  */
 
-obj.bbb = function (str, obj) {
+obj.ddd = function (str, obj) {
   return str;
 };

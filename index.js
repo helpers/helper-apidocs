@@ -14,6 +14,8 @@
 var path = require('path');
 var glob = require('globby');
 var async = require('async');
+var loader = require('./load');
+var relative = require('relative');
 var extend = require('extend-shallow');
 var tutil = require('template-utils');
 
@@ -22,7 +24,7 @@ var tutil = require('template-utils');
  */
 
 var requires = {};
-var jscomments = requires.jscomments || (requires.jscomments = require('js-comments'));
+var comments = requires.comments || (requires.comments = require('js-comments'));
 
 /**
  * Expose `apidocs` helper
@@ -42,15 +44,31 @@ function apidocs(patterns, options, cb) {
   var opts = extend({sep: '\n', dest: 'README.md'}, options);
   var dest = opts.dest;
   if (dest && dest.indexOf('://') === -1) {
-    dest = path.relative(process.cwd(), dest);
+    dest = relative(dest);
   }
 
   opts.cwd = opts.cwd ? path.dirname(opts.cwd) : process.cwd();
+  var app = this && this.app;
+  if (app && app.create) {
+    app.create('apidoc', {isRenderable: true, isPartial: true });
+  }
 
   // we can't pass the `opts` object to glob because it bugs out
   glob(patterns, opts, function(err, files) {
     async.mapSeries(files, function(fp, next) {
-      return next(null, tutil.headings(jscomments(fp, dest, opts)));
+      var res = tutil.headings(comments(fp, dest, opts));
+
+      if (app) {
+        app.option('renameKey', function (fp) {
+          return fp;
+        });
+
+        app.apidoc({ path: fp, content: res });
+        var file = app.views.apidocs[fp];
+        app.render(file, opts, next);
+      } else {
+        next(null, res);
+      }
     }, function (err, arr) {
       if (err) return cb(err);
       cb(null, arr.join('\n'));
@@ -61,13 +79,30 @@ function apidocs(patterns, options, cb) {
 apidocs.sync = function(patterns, options) {
   var opts = extend({sep: '\n', dest: 'README.md'}, options);
   var dest = opts.dest;
+
   if (dest && dest.indexOf('://') === -1) {
-    dest = path.relative(process.cwd(), dest);
+    dest = relative(dest);
   }
 
   opts.cwd = opts.cwd ? path.dirname(opts.cwd) : process.cwd();
+  var app = this && this.app;
+  if (app && app.create) {
+    app.create('apidoc', {isRenderable: true, isPartial: true });
+  }
 
   return glob.sync(patterns, opts).map(function (fp) {
-    return tutil.headings(jscomments(fp, dest, opts));
+    var res = tutil.headings(comments(fp, dest, opts));
+    fp = relative(fp);
+
+    if (app) {
+      app.option('renameKey', function (fp) {
+        return fp;
+      });
+
+      app.apidoc({ path: fp, content: res });
+      var file = app.views.apidocs[fp];
+      return app.render(file, opts);
+    }
+    return res;
   }).join('\n');
 };

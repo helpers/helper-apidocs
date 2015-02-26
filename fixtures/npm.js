@@ -10,7 +10,16 @@
 var obj = {};
 
 /**
- * b<%= apidocs("fixtures/c.js") %>
+ * <%= apidocs(resolve("helper-resolve")) %>
+ * @api public
+ */
+
+obj.npm = function (str, obj) {
+  return str;
+};
+
+/**
+ * Do stuff with the given `str` and `obj`.
  *
  * @param {String} `str`
  * @param {Object} `obj`
@@ -18,6 +27,6 @@ var obj = {};
  * @api public
  */
 
-obj.bbb = function (str, obj) {
+obj.four = function (str, obj) {
   return str;
 };

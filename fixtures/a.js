@@ -10,27 +10,13 @@
 var obj = {};
 
 /**
- * Do stuff with the given `str` and `obj`.
+ * <%= resolve("helper-resolve") %>
+ * a<%= apidocs("fixtures/b.js") %>
  *
- * @param {String} `str`
- * @param {Object} `obj`
- * @return {String}
+ * a{{apidocs "fixtures/b.js"}}
  * @api public
  */
 
-obj.one = function (str, obj) {
-  return str;
-};
-
-/**
- * Do stuff with the given `str` and `obj`.
- *
- * @param {String} `str`
- * @param {Object} `obj`
- * @return {String}
- * @api private
- */
-
-obj.two = function (str, obj) {
+obj.aaa = function (str, obj) {
   return str;
 };
