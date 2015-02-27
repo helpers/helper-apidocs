@@ -1,7 +1,7 @@
 {
   "name": "helper-apidocs",
   "description": "Template helper for automatically generating API docs from code comments. The sync version works with handlebars, lo-dash, or any template engine that supports helper functions. The async version is compatible with Verb, Assemble, or any application based on Template.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "homepage": "https://github.com/jonschlinkert/helper-apidocs",
   "author": {
     "name": "Jon Schlinkert",
@@ -24,9 +24,9 @@
   },
   "dependencies": {
     "async": "^0.9.0",
-    "base-file-loader": "^1.0.1",
     "extend-shallow": "^1.0.1",
     "globby": "^1.2.0",
+    "helper-resolve": "^0.1.2",
     "js-comments": "^0.3.6",
     "look-up": "^0.6.0",
     "relative": "^2.0.0",
@@ -34,7 +34,6 @@
   },
   "devDependencies": {
     "handlebars": "^3.0.0",
-    "helper-resolve": "^0.1.2",
     "lodash": "^3.3.0",
     "should": "^5.0.1",
     "template": "^0.10.1",
