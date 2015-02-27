@@ -47,6 +47,13 @@ module.exports = apidocs;
  */
 
 function apidocs(patterns, options, cb) {
+  // if an object is passed, use the `cwd`
+  if (typeof patterns === 'object' && !Array.isArray(patterns)) {
+    cb = options;
+    options = patterns;
+    patterns = (options && options.cwd) || '*.js';
+  }
+
   if (typeof options === 'function') {
     cb = options; options = {};
   }
@@ -67,16 +74,18 @@ function apidocs(patterns, options, cb) {
   glob(patterns, opts, function(err, files) {
     async.mapSeries(files, function(fp, next) {
       var res = tutil.headings(comments(fp, dest, opts));
-      console.log(fp)
-
       if (app) {
         app.option('renameKey', function (fp) {
           return fp;
         });
 
-        app.apidoc({ path: fp, content: res });
+        app.apidoc({ path: fp, content: res, ext: '.md', engine: '.md' });
         var file = app.views.apidocs[fp];
-        app.render(file, opts, next);
+
+        app.render(file, opts, function (err, content) {
+          if (err) return next(err);
+          next(null, content);
+        });
       } else {
         next(null, res);
       }
