@@ -14,7 +14,6 @@
 var path = require('path');
 var glob = require('globby');
 var async = require('async');
-var loader = require('./load');
 var relative = require('relative');
 var extend = require('extend-shallow');
 var tutil = require('template-utils');
