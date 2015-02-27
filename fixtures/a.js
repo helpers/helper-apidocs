@@ -13,6 +13,10 @@ var obj = {};
  * <%= resolve("helper-resolve") %>
  * a<%= apidocs("fixtures/b.js") %>
  *
+ * ```js
+ * <%%= whatever %>
+ * ```
+ *
  * a{{apidocs "fixtures/b.js"}}
  * @api public
  */
