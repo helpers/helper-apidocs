@@ -58,7 +58,8 @@ function apidocs(patterns, options, cb) {
   }
 
   var opts = extend({sep: '\n', dest: 'README.md'}, options);
-  var dest = opts.dest;
+  var dest = opts.dest, delims;
+
   if (dest && dest.indexOf('://') === -1) {
     dest = relative(dest);
   }
@@ -67,27 +68,30 @@ function apidocs(patterns, options, cb) {
   var app = this && this.app;
   if (app && app.create) {
     app.create('apidoc', {isRenderable: true, isPartial: true });
+    delims = opts.delims || app.delims['.*'].original || ['<%', '%>'];
   }
 
   // we can't pass the `opts` object to glob because it bugs out
   glob(patterns, opts, function(err, files) {
     async.mapSeries(files, function(fp, next) {
       var res = tutil.headings(comments(fp, dest, opts));
-      if (app) {
-        app.option('renameKey', function (fp) {
-          return fp;
-        });
+      // escaped template variables
+      res = tutil.escapeFn(app, delims)(res);
 
-        app.apidoc({ path: fp, content: res, ext: '.md', engine: '.md' });
-        var file = app.views.apidocs[fp];
+      if (!app) return next(null, tutil.unescapeFn(app)(res));
 
-        app.render(file, opts, function (err, content) {
-          if (err) return next(err);
-          next(null, content);
-        });
-      } else {
-        next(null, res);
-      }
+      app.option('renameKey', function (fp) {
+        return fp;
+      });
+
+
+      app.apidoc({ path: fp, content: res, ext: '.md', engine: '.md' });
+      var file = app.views.apidocs[fp];
+
+      app.render(file, opts, function (err, content) {
+        if (err) return next(err);
+        next(null, tutil.unescapeFn(app)(content));
+      });
     }, function (err, arr) {
       if (err) return cb(err);
       cb(null, arr.join('\n'));
@@ -97,7 +101,7 @@ function apidocs(patterns, options, cb) {
 
 apidocs.sync = function(patterns, options) {
   var opts = extend({sep: '\n', dest: 'README.md'}, options);
-  var dest = opts.dest;
+  var dest = opts.dest, delims;
 
   if (dest && dest.indexOf('://') === -1) {
     dest = relative(dest);
@@ -107,21 +111,22 @@ apidocs.sync = function(patterns, options) {
   var app = this && this.app;
   if (app && app.create) {
     app.create('apidoc', {isRenderable: true, isPartial: true });
+    delims = opts.delims || app.delims['.*'].original || ['<%', '%>'];
   }
 
   return glob.sync(patterns, opts).map(function (fp) {
     var res = tutil.headings(comments(fp, dest, opts));
+    res = tutil.escapeFn(app, delims)(res);
+
+    if (!app) { return tutil.unescapeFn(app)(res); }
+
     fp = relative(fp);
+    app.option('renameKey', function (fp) {
+      return fp;
+    });
 
-    if (app) {
-      app.option('renameKey', function (fp) {
-        return fp;
-      });
-
-      app.apidoc({ path: fp, content: res });
-      var file = app.views.apidocs[fp];
-      return app.render(file, opts);
-    }
-    return res;
+    app.apidoc({ path: fp, content: res });
+    var file = app.views.apidocs[fp];
+    return tutil.unescapeFn(app)(app.render(file, opts));
   }).join('\n');
 };
