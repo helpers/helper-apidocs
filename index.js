@@ -64,7 +64,7 @@ function apidocs(patterns, options, cb) {
     dest = relative(dest);
   }
 
-  opts.cwd = opts.cwd ? path.dirname(opts.cwd) : process.cwd();
+  opts.cwd = opts.cwd || process.cwd();
   var app = this && this.app;
   if (app && app.create) {
     app.create('apidoc', {isRenderable: true, isPartial: true });
@@ -83,7 +83,6 @@ function apidocs(patterns, options, cb) {
       app.option('renameKey', function (fp) {
         return fp;
       });
-
 
       app.apidoc({ path: fp, content: res, ext: '.md', engine: '.md' });
       var file = app.views.apidocs[fp];
