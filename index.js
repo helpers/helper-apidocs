@@ -11,121 +11,113 @@
  * Module dependencies
  */
 
+var fs = require('fs');
 var path = require('path');
-var glob = require('globby');
-var async = require('async');
+var glob = require('matched');
+var bindHelpers = require('template-bind-helpers');
+var comments = require('js-comments');
 var relative = require('relative');
-var extend = require('extend-shallow');
-var tutil = require('template-utils');
+var isGlob = require('is-glob');
+var merge = require('mixin-deep');
+var fileCache = {};
 
 /**
- * Requires cache
- */
-
-var requires = {};
-var comments = requires.comments || (requires.comments = require('js-comments'));
-
-/**
- * Expose `apidocs` helper
- */
-
-module.exports = apidocs;
-
-/**
- * `apidocs` helper.
- */
-/**
- * Generate API docs from code comments in the JavaScript
- * files that match the given `patterns`. Only code comments
- * with `@api public` are rendered.
+ * Generate API docs from code comments for any JavaScript
+ * files that match the given `patterns`. Note that **only code
+ * comments with `@api public` will be rendered.**
  *
- * @param  {String} `patterns`
- * @param  {Object} `options`
- * @return {String}
+ * **Example**
+ *
+ * ```js
+ * apidocs("index.js");
+ * ```
+ *
+ * @param  {String} `patterns` Glob patterns for files with code comments to render.
+ * @param  {Object} `options` Options to pass to [js-comments].
+ * @return {String} Markdown-formatted API documentation
  * @api public
  */
 
-function apidocs(patterns, options, cb) {
-  // if an object is passed, use the `cwd`
-  if (typeof patterns === 'object' && !Array.isArray(patterns)) {
-    cb = options;
-    options = patterns;
-    patterns = (options && options.cwd) || '*.js';
+module.exports = function apidocs(config) {
+  config = merge({}, config);
+
+  return function(patterns, opts) {
+    var options = (this && this.options) || {};
+    opts = merge({}, options, options.apidocs, opts);
+
+    opts.file = opts.file || {};
+    opts.dest = opts.dest || 'README.md';
+    opts.cwd = opts.cwd || process.cwd();
+
+    var delims = opts.escapeDelims || ['<%%=', '<%='];
+    var files = cache(patterns, opts);
+    var len = files.length, i = 0;
+    var res = '', context = {};
+
+    if (this && this.app) {
+      opts = bindHelpers(this.app, opts, false);
+      opts.examples = this.app.cache.data.examples || {};
+      context = this.context;
+    }
+
+    while (len--) {
+      var fp = files[i++];
+      var str = fs.readFileSync(fp, 'utf8');
+      var arr = comments.parse(str, opts);
+      var checked, n = 0;
+
+      arr = filter(arr, opts, checked, n);
+
+      var ctx = merge({}, opts);
+      ctx.file = ctx.file || {};
+      ctx.file.path = normalize(ctx.file.path, fp, opts.dest);
+      ctx.data = context;
+
+      res += comments.render(arr, ctx);
+    }
+
+    res = comments.format(res);
+    if (this && this.app) {
+      res = res.split(delims[0] || '<%%=').join('__DELIM__');
+      res = this.app.render(res, opts);
+      res = res.split('__DELIM__').join(delims[1] || '<%=');
+    }
+    return res;
+  };
+};
+
+function cache(patterns, options) {
+  var opts = merge({cwd: process.cwd()}, options);
+  var key = patterns.toString();
+  if (fileCache.hasOwnProperty(key)) {
+    return fileCache[key];
   }
+  var files = isGlob(patterns)
+    ? glob.sync(patterns, opts)
+    : [patterns];
 
-  if (typeof options === 'function') {
-    cb = options; options = {};
-  }
-
-  var opts = extend({sep: '\n', dest: 'README.md'}, options);
-  var dest = opts.dest, delims;
-
-  if (dest && dest.indexOf('://') === -1) {
-    dest = relative(dest);
-  }
-
-  opts.cwd = opts.cwd || process.cwd();
-  var app = this && this.app;
-  if (app && app.create) {
-    app.create('apidoc', {isRenderable: true, isPartial: true });
-    delims = opts.delims || app.delims['.*'].original || ['<%', '%>'];
-  }
-
-  // we can't pass the `opts` object to glob because it bugs out
-  glob(patterns, opts, function(err, files) {
-    async.mapSeries(files, function(fp, next) {
-      var res = tutil.headings(comments(fp, dest, opts));
-      // escaped template variables
-      res = tutil.escapeFn(app, delims)(res);
-
-      if (!app) return next(null, tutil.unescapeFn(app)(res));
-
-      app.option('renameKey', function (fp) {
-        return fp;
-      });
-
-      app.apidoc({ path: fp, content: res, ext: '.md', engine: '.md' });
-      var file = app.views.apidocs[fp];
-
-      app.render(file, opts, function (err, content) {
-        if (err) return next(err);
-        next(null, tutil.unescapeFn(app)(content));
-      });
-    }, function (err, arr) {
-      if (err) return cb(err);
-      cb(null, arr.join('\n'));
-    });
+  files = files.map(function (fp) {
+    return path.join(opts.cwd, fp);
   });
+  return (fileCache[key] = files);
 }
 
-apidocs.sync = function(patterns, options) {
-  var opts = extend({sep: '\n', dest: 'README.md'}, options);
-  var dest = opts.dest, delims;
-
-  if (dest && dest.indexOf('://') === -1) {
-    dest = relative(dest);
+function normalize(fp, fallback, dest) {
+  fp = fp || fallback;
+  if (fp.indexOf('//') === -1) {
+    return relative(dest, fp);
   }
+  return fp;
+}
 
-  opts.cwd = opts.cwd ? path.dirname(opts.cwd) : process.cwd();
-  var app = this && this.app;
-  if (app && app.create) {
-    app.create('apidoc', {isRenderable: true, isPartial: true });
-    delims = opts.delims || app.delims['.*'].original || ['<%', '%>'];
-  }
-
-  return glob.sync(patterns, opts).map(function (fp) {
-    var res = tutil.headings(comments(fp, dest, opts));
-    res = tutil.escapeFn(app, delims)(res);
-
-    if (!app) { return tutil.unescapeFn(app)(res); }
-
-    fp = relative(fp);
-    app.option('renameKey', function (fp) {
-      return fp;
-    });
-
-    app.apidoc({ path: fp, content: res });
-    var file = app.views.apidocs[fp];
-    return tutil.unescapeFn(app)(app.render(file, opts));
-  }).join('\n');
-};
+function filter(arr, opts, checked, n) {
+  return arr.filter(function (ele, i) {
+    n = n || 0;
+    if (!checked && /Copyright/.test(ele.description) && i === 0) {
+      checked = true;
+      n++;
+    }
+    if (opts.skipFirst && i === n) return false;
+    return true;
+  });
+}

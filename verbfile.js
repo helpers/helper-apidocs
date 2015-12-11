@@ -1,10 +1,12 @@
-var verb = require('verb');
+'use strict';
 
-// this helper is already included in verb,
-// it's only used here for tests
-verb.asyncHelper('apidocs', require('./'));
+var apidocs = require('./');
 
-verb.task('default', function () {
-  verb.src('.verb.md')
-    .pipe(verb.dest('.'));
-});
+module.exports = function(verb) {
+  verb.asyncHelper('apidocs', apidocs());
+
+  verb.task('default', function() {
+    verb.src('.verb.md')
+      .pipe(verb.dest('.'));
+  });
+};

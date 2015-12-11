@@ -10,7 +10,7 @@
 require('should');
 var path = require('path');
 var handlebars = require('handlebars');
-var Template = require('template');
+var Templates = require('templates');
 var _ = require('lodash');
 var helper = require('./');
 var template;
@@ -65,12 +65,12 @@ describe('sync', function () {
 
 describe('sync:template', function () {
   beforeEach(function () {
-    template = new Template();
+    template = new Templates();
     template.helper('apidocs', helper.sync);
     template.helper('resolve', resolveSync);
   });
 
-  it('should work with Template:', function () {
+  it('should work with Templates:', function () {
     template.page('docs', {content: '<%= apidocs("fixtures/a.js") %>'});
     template.render('docs').should.match(/### \[\.aaa\]/);
   });
@@ -78,13 +78,13 @@ describe('sync:template', function () {
 
 describe('helper apidocs', function () {
   beforeEach(function (cb) {
-    template = new Template();
+    template = new Templates();
     template.asyncHelper('apidocs', helper);
     template.asyncHelper('resolve', resolve);
     cb();
   });
 
-  it('should work with Template:', function (done) {
+  it('should work with Templates:', function (done) {
     template.page('docs', {content: '<%= apidocs("fixtures/a.js") %>'});
     var tmpl = template.getPage('docs');
 
