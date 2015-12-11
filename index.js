@@ -12,7 +12,7 @@
  */
 
 var path = require('path');
-var glob = require('globby');
+var glob = require('matched');
 var async = require('async');
 var relative = require('relative');
 var extend = require('extend-shallow');
