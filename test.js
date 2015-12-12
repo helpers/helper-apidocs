@@ -12,7 +12,7 @@ var path = require('path');
 var handlebars = require('handlebars');
 var Templates = require('templates');
 var _ = require('lodash');
-var helper = require('./');
+var helper = require('./')();
 var template;
 
 function resolve(fp, next) {

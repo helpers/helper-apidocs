@@ -1,10 +1,3 @@
-/*!
- * helper-apidocs <https://github.com/jonschlinkert/helper-apidocs>
- *
- * Copyright (c) 2014-2015, Jon Schlinkert.
- * Licensed under the MIT License.
- */
-
 'use strict';
 
 /**
@@ -15,7 +8,7 @@ var fs = require('fs');
 var path = require('path');
 var glob = require('matched');
 var bindHelpers = require('template-bind-helpers');
-var comments = require('js-comments');
+var jscomments = require('js-comments');
 var relative = require('relative');
 var isGlob = require('is-glob');
 var merge = require('mixin-deep');
@@ -39,85 +32,77 @@ var fileCache = {};
  */
 
 module.exports = function apidocs(config) {
-  config = merge({}, config);
+  return function(patterns, options) {
+    var appOptions = merge({}, this.options);
+    var opts = merge({}, config, appOptions.apidocs, options);
 
-  return function(patterns, opts) {
-    var options = (this && this.options) || {};
-    opts = merge({}, options, options.apidocs, opts);
-
-    opts.file = opts.file || {};
-    opts.dest = opts.dest || 'README.md';
+    var currentView = this.context.view || {};
     opts.cwd = opts.cwd || process.cwd();
 
     var delims = opts.escapeDelims || ['<%%=', '<%='];
-    var files = cache(patterns, opts);
-    var len = files.length, i = 0;
-    var res = '', context = {};
+    var found = false;
+    var views = {};
+    var res = '';
 
-    if (this && this.app) {
-      opts = bindHelpers(this.app, opts, false);
-      opts.examples = this.app.cache.data.examples || {};
-      context = this.context;
+    if (typeof patterns === 'string' && !isGlob(patterns)) {
+      var collections = this.app.views;
+      var view;
+
+      for (var key in collections) {
+        var collection = this.app[key];
+        view = collection.getView(patterns);
+        if (view) {
+          break;
+        }
+      }
+
+      if (view) {
+        views[view.key] = view;
+        found = true;
+      }
     }
 
-    while (len--) {
-      var fp = files[i++];
-      var str = fs.readFileSync(fp, 'utf8');
-      var arr = comments.parse(str, opts);
-      var checked, n = 0;
-
-      arr = filter(arr, opts, checked, n);
-
-      var ctx = merge({}, opts);
-      ctx.file = ctx.file || {};
-      ctx.file.path = normalize(ctx.file.path, fp, opts.dest);
-      ctx.data = context;
-
-      res += comments.render(arr, ctx);
+    if (!found) {
+      views = this.app.load(patterns, options);
     }
 
-    res = comments.format(res);
-    if (this && this.app) {
-      res = res.split(delims[0] || '<%%=').join('__DELIM__');
-      res = this.app.render(res, opts);
-      res = res.split('__DELIM__').join(delims[1] || '<%=');
+    var res = '';
+    for (var key in views) {
+      var view = views[key];
+      res += renderComments(this.app, view, opts);
     }
-    return res;
+
+    var doc = this.app.view('apidoc', {content: res, engine: 'text'});
+    var res = doc.compile(opts);
+    return res.fn(opts);
   };
 };
 
-function cache(patterns, options) {
-  var opts = merge({cwd: process.cwd()}, options);
-  var key = patterns.toString();
-  if (fileCache.hasOwnProperty(key)) {
-    return fileCache[key];
-  }
-  var files = isGlob(patterns)
-    ? glob.sync(patterns, opts)
-    : [patterns];
+function renderComments(app, view, opts) {
+  opts = bindHelpers(app, view, opts, true);
+  opts.examples = app.context.examples || {};
 
-  files = files.map(function (fp) {
-    return path.join(opts.cwd, fp);
-  });
-  return (fileCache[key] = files);
+  var parsed = jscomments.parse(view.content, opts);
+  var comments = filter(parsed, opts);
+  var dest = normalize(view.path, view.dest || opts.dest || 'readme.md');
+  opts.path = view.path;
+  opts.data = merge({path: dest, file: view}, opts);
+  return jscomments.render(comments, opts);
 }
 
-function normalize(fp, fallback, dest) {
-  fp = fp || fallback;
+function normalize(fp, dest) {
   if (fp.indexOf('//') === -1) {
     return relative(dest, fp);
   }
   return fp;
 }
 
-function filter(arr, opts, checked, n) {
+function filter(arr, opts) {
   return arr.filter(function (ele, i) {
-    n = n || 0;
-    if (!checked && /Copyright/.test(ele.description) && i === 0) {
-      checked = true;
-      n++;
+    var comment = ele.comment;
+    if (/Copyright/.test(comment.content) && i === 0) {
+      return false;
     }
-    if (opts.skipFirst && i === n) return false;
     return true;
   });
 }
