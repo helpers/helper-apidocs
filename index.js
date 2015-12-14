@@ -1,131 +1,195 @@
-/*!
- * helper-apidocs <https://github.com/jonschlinkert/helper-apidocs>
- *
- * Copyright (c) 2014-2015, Jon Schlinkert.
- * Licensed under the MIT License.
- */
-
 'use strict';
 
 /**
  * Module dependencies
  */
 
+var fs = require('fs');
 var path = require('path');
-var glob = require('matched');
-var async = require('async');
-var relative = require('relative');
-var extend = require('extend-shallow');
-var tutil = require('template-utils');
+var utils = require('./utils');
 
 /**
- * Requires cache
- */
-
-var requires = {};
-var comments = requires.comments || (requires.comments = require('js-comments'));
-
-/**
- * Expose `apidocs` helper
- */
-
-module.exports = apidocs;
-
-/**
- * `apidocs` helper.
- */
-/**
- * Generate API docs from code comments in the JavaScript
- * files that match the given `patterns`. Only code comments
- * with `@api public` are rendered.
+ * Generate API docs from code comments for any JavaScript
+ * files that match the given `patterns`. Note that **only code
+ * comments with `@api public` will be rendered.**
  *
- * @param  {String} `patterns`
- * @param  {Object} `options`
- * @return {String}
+ * ```js
+ * apidocs("index.js");
+ * ```
+ * @param  {String} `patterns` Glob patterns for files with code comments to render.
+ * @param  {Object} `options` Options to pass to [js-comments][].
+ * @return {String} Markdown-formatted API documentation
  * @api public
  */
 
-function apidocs(patterns, options, cb) {
-  // if an object is passed, use the `cwd`
-  if (typeof patterns === 'object' && !Array.isArray(patterns)) {
-    cb = options;
-    options = patterns;
-    patterns = (options && options.cwd) || '*.js';
-  }
+module.exports = function apidocs(config) {
+  return function(patterns, options) {
+    if (!this || !this.options) {
+      return fallback.apply(null, arguments);
+    }
 
+    var appOptions = utils.merge({}, this.options);
+    var opts = utils.merge({}, config, appOptions.apidocs, options);
+    opts.escapeDelims = opts.escapeDelims || ['<%=', '<%='];
+    opts.delims = opts.delims || ['<%=', '%>'];
+
+    opts.cwd = opts.cwd || process.cwd();
+    var found = false;
+    var views = {};
+
+    if (typeof patterns === 'string' && !utils.isGlob(patterns)) {
+      var collections = this.app.views;
+      var view;
+
+      for (var key in collections) {
+        var collection = this.app[key];
+        view = collection.getView(patterns);
+        if (view) {
+          break;
+        }
+      }
+
+      if (view) {
+        views[view.key] = view;
+        found = true;
+      }
+    }
+
+    if (!found && typeof this.app.load === 'function') {
+      views = this.app.load(patterns, options);
+    } else if (!found) {
+      var collection = this.app.collection();
+      var files = utils.glob.sync(patterns, opts);
+
+      files.forEach(function(filename) {
+        var fp =  path.join(opts.cwd, filename);
+        collection.addView(fp, {
+          content: fs.readFileSync(fp),
+          path: fp
+        });
+      });
+
+      if (files.length) {
+        views = collection;
+      }
+    }
+
+    var content = '';
+    for (var name in views) {
+      view = views[name];
+      escape(view, opts);
+      var rendered = renderComments(this.app, view, opts);
+      content += rendered;
+    }
+
+    var doc = this.app.view('apidoc', {content: content, engine: 'text'});
+    var result = doc.compile(opts);
+    var out = unescape(result.fn(opts), opts.escapeDelims[1]);
+    return out;
+  };
+};
+
+function fallback(patterns, options, fn) {
   if (typeof options === 'function') {
-    cb = options; options = {};
+    fn = options;
+    options = {};
   }
 
-  var opts = extend({sep: '\n', dest: 'README.md'}, options);
-  var dest = opts.dest, delims;
+  var opts = utils.merge({cwd: process.cwd(), dest: 'readme.md'}, options);
+  opts.delims = opts.delims || ['<%=', '%>'];
+  opts.escapeDelims = opts.escapeDelims || ['<%=', '<%='];
+  var files = utils.glob.sync(patterns, opts);
+  var res = '';
 
-  if (dest && dest.indexOf('://') === -1) {
-    dest = relative(dest);
-  }
+  files.forEach(function(filename) {
+    var fp = path.join(opts.cwd, filename);
+    var str = fs.readFileSync(fp, 'utf8');
+    str = str.split(opts.escapeDelims[0]).join('__ESC_DELIM__');
 
-  opts.cwd = opts.cwd || process.cwd();
-  var app = this && this.app;
-  if (app && app.create) {
-    app.create('apidoc', {isRenderable: true, isPartial: true });
-    delims = opts.delims || app.delims['.*'].original || ['<%', '%>'];
-  }
+    var file = {
+      cwd: opts.cwd,
+      name: path.basename(fp, path.extname(fp)),
+      base: path.dirname(fp),
+      path: fp,
+      content: str
+    };
 
-  // we can't pass the `opts` object to glob because it bugs out
-  glob(patterns, opts, function(err, files) {
-    async.mapSeries(files, function(fp, next) {
-      var res = tutil.headings(comments(fp, dest, opts));
-      // escaped template variables
-      res = tutil.escapeFn(app, delims)(res);
+    var parsed = utils.jscomments.parse(str, opts);
+    var comments = filter(parsed, opts);
+    opts.path = file.path;
+    var dest = normalize(file.path, opts.dest);
 
-      if (!app) return next(null, tutil.unescapeFn(app)(res));
+    opts.data = utils.merge({path: dest, file: file}, opts);
+    opts.data.apidocs = fallback;
+    if (!opts.data.resolve) {
+      opts.data.resolve = resolveSync;
+    }
 
-      app.option('renameKey', function (fp) {
-        return fp;
-      });
+    var result = utils.jscomments.render(comments, opts);
+    if (typeof fn === 'function') {
+      while (result.indexOf(opts.delims[0]) !== -1) {
+        var before = result;
+        result = fn(result, opts.data);
+        if (result === before) {
+          break;
+        }
+      }
+    }
 
-      app.apidoc({ path: fp, content: res, ext: '.md', engine: '.md' });
-      var file = app.views.apidocs[fp];
-
-      app.render(file, opts, function (err, content) {
-        if (err) return next(err);
-        next(null, tutil.unescapeFn(app)(content));
-      });
-    }, function (err, arr) {
-      if (err) return cb(err);
-      cb(null, arr.join('\n'));
-    });
+    result = result.split('__ESC_DELIM__').join(opts.escapeDelims[1]);
+    res += result;
   });
+
+  res = res.replace(/\n{2,}/g, '\n\n');
+  return res;
 }
 
-apidocs.sync = function(patterns, options) {
-  var opts = extend({sep: '\n', dest: 'README.md'}, options);
-  var dest = opts.dest, delims;
+function renderComments(app, view, opts) {
+  opts = utils.bindHelpers(app, view, opts, true);
+  opts.examples = app.context.examples || {};
 
-  if (dest && dest.indexOf('://') === -1) {
-    dest = relative(dest);
+  var parsed = utils.jscomments.parse(view.content, opts);
+  var comments = filter(parsed, opts);
+  var dest = normalize(view.path, view.dest || opts.dest || 'readme.md');
+  opts.path = view.path;
+  opts.data = utils.merge({path: dest, file: view}, opts);
+  return utils.jscomments.render(comments, opts);
+}
+
+function resolveSync(fp) {
+  var pkg = path.resolve('node_modules', fp, 'package.json');
+  try {
+    var obj = require(pkg);
+    var main = obj && obj.main;
+    return path.resolve(path.dirname(pkg), main);
+  } catch (err) {
+    throw err;
   }
+}
 
-  opts.cwd = opts.cwd ? path.dirname(opts.cwd) : process.cwd();
-  var app = this && this.app;
-  if (app && app.create) {
-    app.create('apidoc', {isRenderable: true, isPartial: true });
-    delims = opts.delims || app.delims['.*'].original || ['<%', '%>'];
+function escape(file, opts) {
+  opts.delims = opts.delims || ['<%=', '%>'];
+  var esc = opts.escapeDelims || ['<%=', '<%='];
+  file.content = file.content.split(esc[0]).join('__ESC_DELIM__');
+}
+
+function unescape(str, unescapeDelim) {
+  return str.split('__ESC_DELIM__').join(unescapeDelim);
+}
+
+function normalize(fp, dest) {
+  if (fp.indexOf('//') === -1) {
+    return utils.relative(dest, fp);
   }
+  return fp;
+}
 
-  return glob.sync(patterns, opts).map(function (fp) {
-    var res = tutil.headings(comments(fp, dest, opts));
-    res = tutil.escapeFn(app, delims)(res);
-
-    if (!app) { return tutil.unescapeFn(app)(res); }
-
-    fp = relative(fp);
-    app.option('renameKey', function (fp) {
-      return fp;
-    });
-
-    app.apidoc({ path: fp, content: res });
-    var file = app.views.apidocs[fp];
-    return tutil.unescapeFn(app)(app.render(file, opts));
-  }).join('\n');
-};
+function filter(arr, opts) {
+  return arr.filter(function(ele, i) {
+    var comment = ele.comment;
+    if (/Copyright/.test(comment.content) && i === 0) {
+      return false;
+    }
+    return true;
+  });
+}
