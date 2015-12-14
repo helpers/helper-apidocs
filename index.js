@@ -30,6 +30,8 @@ module.exports = function apidocs(config) {
 
     var appOptions = utils.merge({}, this.options);
     var opts = utils.merge({}, config, appOptions.apidocs, options);
+    opts.escapeDelims = opts.escapeDelims || ['<%=', '<%='];
+    opts.delims = opts.delims || ['<%=', '%>'];
 
     opts.cwd = opts.cwd || process.cwd();
     var found = false;
@@ -53,18 +55,37 @@ module.exports = function apidocs(config) {
       }
     }
 
-    if (!found) {
+    if (!found && typeof this.app.load === 'function') {
       views = this.app.load(patterns, options);
+    } else if (!found) {
+      var collection = this.app.collection();
+      var files = utils.glob.sync(patterns, opts);
+
+      files.forEach(function(filename) {
+        var fp =  path.join(opts.cwd, filename);
+        collection.addView(fp, {
+          content: fs.readFileSync(fp),
+          path: fp
+        });
+      });
+
+      if (files.length) {
+        views = collection;
+      }
     }
 
     var content = '';
     for (var name in views) {
-      content += renderComments(this.app, views[name], opts);
+      view = views[name];
+      escape(view, opts);
+      var rendered = renderComments(this.app, view, opts);
+      content += rendered;
     }
 
     var doc = this.app.view('apidoc', {content: content, engine: 'text'});
     var result = doc.compile(opts);
-    return result.fn(opts);
+    var out = unescape(result.fn(opts), opts.escapeDelims[1]);
+    return out;
   };
 };
 
@@ -76,8 +97,8 @@ function fallback(patterns, options, fn) {
 
   var opts = utils.merge({cwd: process.cwd(), dest: 'readme.md'}, options);
   opts.delims = opts.delims || ['<%=', '%>'];
-  opts.escapeDelims = opts.escapeDelims || ['<%%=', '<%='];
-  var files = utils.glob.sync(patterns, options);
+  opts.escapeDelims = opts.escapeDelims || ['<%=', '<%='];
+  var files = utils.glob.sync(patterns, opts);
   var res = '';
 
   files.forEach(function(filename) {
@@ -114,10 +135,11 @@ function fallback(patterns, options, fn) {
         }
       }
     }
+
+    result = result.split('__ESC_DELIM__').join(opts.escapeDelims[1]);
     res += result;
   });
 
-  res = res.split('__ESC_DELIM__').join(opts.escapeDelims[1]);
   res = res.replace(/\n{2,}/g, '\n\n');
   return res;
 }
@@ -143,6 +165,16 @@ function resolveSync(fp) {
   } catch (err) {
     throw err;
   }
+}
+
+function escape(file, opts) {
+  opts.delims = opts.delims || ['<%=', '%>'];
+  var esc = opts.escapeDelims || ['<%=', '<%='];
+  file.content = file.content.split(esc[0]).join('__ESC_DELIM__');
+}
+
+function unescape(str, unescapeDelim) {
+  return str.split('__ESC_DELIM__').join(unescapeDelim);
 }
 
 function normalize(fp, dest) {
