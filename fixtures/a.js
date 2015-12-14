@@ -1,5 +1,5 @@
 /*!
- * helper-apidocs <https://github.com/ * Module dependencies/helper-apidocs>
+ * helper-apidocs <https://github.com/helper-apidocs>
  *
  * Copyright (c) 2014 Jon Schlinkert, contributors.
  * Licensed under the MIT license.
