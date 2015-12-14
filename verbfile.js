@@ -3,10 +3,24 @@
 var apidocs = require('./');
 
 module.exports = function(verb) {
-  verb.asyncHelper('apidocs', apidocs());
+  verb.data({nickname: 'apidocs'});
+  verb.asyncHelper('apidocs', apidocs({
+    delims: ['{%', '%}']
+  }));
 
-  verb.task('default', function() {
-    verb.src('.verb.md')
-      .pipe(verb.dest('.'));
+  verb.helper('wrap', function(name) {
+    return '{%= ' + name + '(\'index.js\') %}';
   });
+
+  verb.task('default', function(cb) {
+    verb.toStream('docs', function(key, view) {
+      return view.basename === 'readme.md';
+    })
+      .pipe(verb.renderFile())
+      .on('error', cb)
+      .pipe(verb.pipeline())
+      .on('error', cb)
+      .pipe(verb.dest('.'))
+      .on('finish', cb)
+    });
 };
