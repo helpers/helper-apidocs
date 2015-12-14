@@ -4,7 +4,7 @@ var apidocs = require('./');
 
 module.exports = function(verb) {
   verb.data({nickname: 'apidocs'});
-  verb.asyncHelper('apidocs', apidocs({
+  verb.helper('apidocs', apidocs({
     delims: ['{%', '%}']
   }));
 
@@ -14,7 +14,7 @@ module.exports = function(verb) {
 
   verb.task('default', function(cb) {
     verb.toStream('docs', function(key, view) {
-      return view.basename === 'readme.md';
+      return key === '.verb';
     })
       .pipe(verb.renderFile())
       .on('error', cb)
