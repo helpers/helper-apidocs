@@ -32,42 +32,37 @@ function resolveSync(fp) {
 
 var helpers = {resolve: resolveSync};
 
-// describe('sync', function() {
-//   it('should generate API docs from the given file:', function() {
-//     var res = helper("fixtures/a.js", render);
-//     res.should.match(/### \[\.aaa\]/);
-//   });
+describe('sync', function() {
+  it('should generate API docs from the given file:', function() {
+    var res = helper("fixtures/a.js", render);
+    res.should.match(/### \[\.aaa\]/);
+  });
 
-//   it('should allow a dest path for relative links to be defined on the opts:', function() {
-//     var res = helper("fixtures/a.js", {dest: 'foo/bar/README.md'}, render);
-//     // res.should.match(/\.\.\/\.\.\/fixtures\/a\.js/);
-//   });
+  it('should generate API docs from a glob of files:', function() {
+    var res = helper("fixtures/*.js");
+    res.should.match(/### \[\.aaa\]/);
+    res.should.match(/### \[\.bbb\]/);
+  });
 
-//   it('should generate API docs from a glob of files:', function() {
-//     var res = helper("fixtures/*.js");
-//     res.should.match(/### \[\.aaa\]/);
-//     res.should.match(/### \[\.bbb\]/);
-//   });
+  it('should work as a lodash helper:', function() {
+    var res = _.template('<%= apidocs("fixtures/c.js") %>', {imports: {apidocs: helper}});
+    res.should.match(/### \[\.ccc\]/);
+  });
 
-//   it.skip('should work as a lodash helper:', function() {
-//     var res = _.template('<%= apidocs("fixtures/c.js") %>', {imports: {apidocs: helper}});
-//     res.should.match(/### \[\.ccc\]/);
-//   });
+  it('should work as a lodash mixin:', function() {
+    _.mixin({apidocs: helper});
+    var res = _.template('<%= _.apidocs("fixtures/a.js") %>')({});
+    res.should.match(/### \[\.aaa\]/);
+  });
 
-//   it('should work as a lodash mixin:', function() {
-//     _.mixin({apidocs: helper});
-//     var res = _.template('<%= _.apidocs("fixtures/a.js") %>')({});
-//     res.should.match(/### \[\.aaa\]/);
-//   });
-
-//   it('should work as a handlebars helper:', function() {
-//     handlebars.registerHelper('apidocs', function(name) {
-//       return new handlebars.SafeString(helper(name));
-//     });
-//     var res = handlebars.compile('{{apidocs "fixtures/a.js"}}')();
-//     res.should.match(/### \[\.aaa\]/);
-//   });
-// });
+  it('should work as a handlebars helper:', function() {
+    handlebars.registerHelper('apidocs', function(name) {
+      return new handlebars.SafeString(helper(name));
+    });
+    var res = handlebars.compile('{{apidocs "fixtures/a.js"}}')();
+    res.should.match(/### \[\.aaa\]/);
+  });
+});
 
 describe('sync:template', function() {
   beforeEach(function(cb) {
@@ -83,17 +78,7 @@ describe('sync:template', function() {
     app.page('docs', {content: '<%= apidocs("fixtures/a.js") %>'})
       .render(function(err, res) {
         if (err) return cb(err);
-        // res.content.should.match(/### \[\.aaa\]/);
-        cb();
-      });
-  });
-
-  it('should resolve nested templates:', function(cb) {
-    app.page('docs', {content: '<%= apidocs("fixtures/a.js") %>'})
-      .render(function(err, res) {
-        if (err) return cb(err);
-        console.log(res.content)
-        // res.content.should.match(/node_modules/i);
+        res.content.should.match(/### \[\.aaa\]/);
         cb();
       });
   });
@@ -106,19 +91,4 @@ describe('sync:template', function() {
         cb();
       });
   });
-
-  // it('should generate API docs from the given file:', function(cb) {
-  //   helper("fixtures/a.js", function(err, content) {
-  //     content.should.match(/### \[\.aaa\]/);
-  //     cb()
-  //   });
-  // });
-
-  // it('should generate API docs from a glob of files:', function(cb) {
-  //   helper("fixtures/*.js", function(err, content) {
-  //     content.should.match(/### \[\.aaa\]/);
-  //     content.should.match(/### \[\.ddd\]/);
-  //     cb();
-  //   });
-  // });
 });

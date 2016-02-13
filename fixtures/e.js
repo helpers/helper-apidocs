@@ -11,7 +11,6 @@ var obj = {};
 
 /**
  * LAST
- * <%= apidocs("npm") %>
  * @api public
  */
 

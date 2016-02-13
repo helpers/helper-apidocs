@@ -30,7 +30,7 @@ module.exports = function apidocs(config) {
 
     var appOptions = utils.merge({}, this.options);
     var opts = utils.merge({}, config, appOptions.apidocs, options);
-    opts.escapeDelims = opts.escapeDelims || ['<%=', '<%='];
+    opts.escapeDelims = opts.escapeDelims || ['<%%=', '<%='];
     opts.delims = opts.delims || ['<%=', '%>'];
 
     opts.cwd = opts.cwd || process.cwd();
@@ -58,11 +58,11 @@ module.exports = function apidocs(config) {
     if (!found && typeof this.app.load === 'function') {
       views = this.app.load(patterns, options);
     } else if (!found) {
-      var collection = this.app.collection();
+      collection = this.app.collection();
       var files = utils.glob.sync(patterns, opts);
 
       files.forEach(function(filename) {
-        var fp =  path.join(opts.cwd, filename);
+        var fp =  path.resolve(opts.cwd, filename);
         collection.addView(fp, {
           content: fs.readFileSync(fp),
           path: fp
@@ -77,7 +77,7 @@ module.exports = function apidocs(config) {
     var content = '';
     for (var name in views) {
       view = views[name];
-      escape(view, opts);
+      escape(view, opts.escapeDelims[0]);
       var rendered = renderComments(this.app, view, opts);
       content += rendered;
     }
@@ -97,7 +97,7 @@ function fallback(patterns, options, fn) {
 
   var opts = utils.merge({cwd: process.cwd(), dest: 'readme.md'}, options);
   opts.delims = opts.delims || ['<%=', '%>'];
-  opts.escapeDelims = opts.escapeDelims || ['<%=', '<%='];
+  opts.escapeDelims = opts.escapeDelims || ['<%%=', '<%='];
   var files = utils.glob.sync(patterns, opts);
   var res = '';
 
@@ -126,7 +126,7 @@ function fallback(patterns, options, fn) {
     }
 
     var result = utils.jscomments.render(comments, opts);
-    if (typeof fn === 'function') {
+    if (result && typeof fn === 'function') {
       while (result.indexOf(opts.delims[0]) !== -1) {
         var before = result;
         result = fn(result, opts.data);
@@ -146,7 +146,9 @@ function fallback(patterns, options, fn) {
 
 function renderComments(app, view, opts) {
   opts = utils.bindHelpers(app, view, opts, true);
-  opts.examples = app.context.examples || {};
+  var data = app.cache.data;
+  var examples = data.examples || {};
+  opts.examples = utils.merge({}, app.context.examples, examples);
 
   var parsed = utils.jscomments.parse(view.content, opts);
   var comments = filter(parsed, opts);
@@ -167,10 +169,8 @@ function resolveSync(fp) {
   }
 }
 
-function escape(file, opts) {
-  opts.delims = opts.delims || ['<%=', '%>'];
-  var esc = opts.escapeDelims || ['<%=', '<%='];
-  file.content = file.content.split(esc[0]).join('__ESC_DELIM__');
+function escape(file, escapeDelims) {
+  file.content = file.content.split(escapeDelims).join('__ESC_DELIM__');
 }
 
 function unescape(str, unescapeDelim) {
